@@ -54,12 +54,6 @@ class DoltToolSuite(DBToolSuite):
         self._connection_uri = connection_uri
         self.autocommit = autocommit
 
-        # Branch id numbers incremental from 0
-        self.branches             = 0
-        self._current_branch_id   = self.branches
-        # Following format from neon.py
-        self._all_branches        = {'main' : (self.branches, connection_uri)}
-
 
     def get_uri_for_db_setup(self) -> str:
         """Returns the connection URI for database setup operations (e.g., psql)."""
@@ -76,36 +70,15 @@ class DoltToolSuite(DBToolSuite):
             print(f"Commit failed: {e}")
 
     def _create_branch_impl(self, branch_name: str, parent_id: str) -> None:
-        try:
-            cmd = f"SELECT dolt_branch('{branch_name}')"
-            super().execute_sql(cmd)
-            self._prepare_commit("new branch")
-
-        except Exception as e:
-            print(f"Create branch failed: {e}")
-        if branch_name not in self._all_branches:
-            self.branches += 1
-            self._all_branches[branch_name] = (self.branches, self.get_uri_for_db_setup())
+        cmd = f"SELECT dolt_branch('{branch_name}')"
+        super().execute_sql(cmd)
+        self._prepare_commit("new branch")
 
     def _connect_branch_impl(self, branch_name: str) -> None:
-        try:
-            cmd = f"SELECT dolt_checkout('{branch_name}')"
-            super().execute_sql(cmd)
-        except Exception as e:
-            print(f"Connect branch failed: {e}")
-        self._current_branch_name = branch_name
-        self._current_branch_id   = self._get_branch_id(branch_name)
+        cmd = f"SELECT dolt_checkout('{branch_name}')"
+        super().execute_sql(cmd)
 
     def _get_current_branch_impl(self) -> tuple[str, str]:
-        try:
-            cmd = f"SELECT active_branch();"
-            res = super().execute_sql(cmd)
-            if res:
-                return (res[0][0], self._get_branch_id(res[0][0]))
-        except Exception as e:
-            print(f"Get current branch failed: {e}")
-        return None
-
-    # Added for readability
-    def _get_branch_id(self, branch_name: str) -> str:
-        return self._all_branches[branch_name][0]
+        cmd = f"SELECT active_branch();"
+        res = super().execute_sql(cmd)
+        return (res[0][0], 0) if res else None
