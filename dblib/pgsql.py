@@ -5,21 +5,21 @@ from dblib.db_api import DBToolSuite
 import dblib.result_collector as rc
 import dblib.util as dbutil
 
-PSQL_USER = "postgres"
-PSQL_PASSWORD = "password" #TODO env variable?
-PSQL_HOST = "localhost"
-PSQL_PORT = 5432
+PGSQL_USER = "postgres"
+PGSQL_PASSWORD = "password" #TODO env variable?
+PGSQL_HOST = "localhost"
+PGSQL_PORT = 5432
 
 
 class PgsqlToolSuite(DBToolSuite):
     """
-    A suite of tools for interacting with a PSQL database on a shared connection.
+    A suite of tools for interacting with a PGSQL database on a shared connection.
     """
 
     @classmethod
     def get_default_connection_uri(cls) -> str:
         return dbutil.format_db_uri(
-            PSQL_USER, PSQL_PASSWORD, PSQL_HOST, PSQL_PORT, "postgres"
+            PGSQL_USER, PGSQL_PASSWORD, PGSQL_HOST, PGSQL_PORT, "postgres"
         )
 
     @classmethod
@@ -30,7 +30,7 @@ class PgsqlToolSuite(DBToolSuite):
         autocommit: bool,
     ):
         uri = dbutil.format_db_uri(
-            PSQL_USER, PSQL_PASSWORD, PSQL_HOST, PSQL_PORT, db_name
+            PGSQL_USER, PGSQL_PASSWORD, PGSQL_HOST, PGSQL_PORT, db_name
         )
 
         conn = psycopg2.connect(uri)
@@ -54,11 +54,11 @@ class PgsqlToolSuite(DBToolSuite):
         self._connection_uri = connection_uri
         self.autocommit = autocommit
 
-        self.current_branch = ""
+        self.current_branch = "main"
 
 
     def get_uri_for_db_setup(self) -> str:
-        """Returns the connection URI for database setup operations (e.g., psql)."""
+        """Returns the connection URI for database setup operations (e.g., PGSQL)."""
         return self._connection_uri
 
     def _create_branch_impl(self, branch_name: str, parent_id: str) -> None:
