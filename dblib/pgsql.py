@@ -71,4 +71,4 @@ class PgsqlToolSuite(DBToolSuite):
         super().execute_sql(cmd)
 
     def _get_current_branch_impl(self) -> tuple[str, str]:
-        return (self.current_branch, 0) if res else None # branch_id not implemented
+        return (self.current_branch, 0) # branch_id not implemented
