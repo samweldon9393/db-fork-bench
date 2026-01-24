@@ -23,15 +23,19 @@ class PgsqlToolSuite(DBToolSuite):
         )
 
     @classmethod
+    def get_branch_uri(cls, branch_name) -> str:
+        return dbutil.format_db_uri(
+            PGSQL_USER, PGSQL_PASSWORD, PGSQL_HOST, PGSQL_PORT, branch_name
+        )
+
+    @classmethod
     def init_for_bench(
         cls,
         collector: rc.ResultCollector,
         db_name: str,
         autocommit: bool,
     ):
-        uri = dbutil.format_db_uri(
-            PGSQL_USER, PGSQL_PASSWORD, PGSQL_HOST, PGSQL_PORT, db_name
-        )
+        uri = PgsqlToolSuite.get_branch_uri(db_name)
 
         conn = psycopg2.connect(uri)
         if autocommit:
@@ -62,10 +66,7 @@ class PgsqlToolSuite(DBToolSuite):
 
         # Create a uri for "postgres" database to have somewhere to switch 
         # during cleanup to delete all created databases
-        p_uri = dbutil.format_db_uri(
-            PGSQL_USER, PGSQL_PASSWORD, PGSQL_HOST, PGSQL_PORT, "postgres"
-        )
-        self._all_branches["postgres"] = p_uri
+        self._all_branches["postgres"] = PgsqlToolSuite.get_default_connection_uri()
 
     def get_uri_for_db_setup(self) -> str:
         """Returns the connection URI for database setup operations (e.g., PGSQL)."""
@@ -73,7 +74,9 @@ class PgsqlToolSuite(DBToolSuite):
 
     def delete_db(self, db_name: str) -> None:
         """
-        Deletes the database from all branches in the Neon project.
+        Deletes all or a single database depending on db_name.
+        If db_name == main branch, delete all branch databases.
+        Else delete the database associated with db_name.
         """
         try:
             # This function gets called with config.db_name in the __exit__
@@ -100,22 +103,15 @@ class PgsqlToolSuite(DBToolSuite):
         cmd = f"CREATE DATABASE {branch_name} TEMPLATE {parent_name} STRATEGY = FILE_COPY"
         super().execute_sql(cmd)
         self.current_branch_name = branch_name
-        uri = dbutil.format_db_uri(
-            PGSQL_USER, PGSQL_PASSWORD, PGSQL_HOST, PGSQL_PORT, branch_name
-        )
-        self._all_branches[branch_name] = uri
+        self._all_branches[branch_name] = PgsqlToolSuite.get_branch_uri(branch_name)
 
     def _connect_branch_impl(self, branch_name: str) -> None:
+        if branch_name not in self._all_branches:
+            raise ValueError(f"Branch '{branch_name}' does not exist.")
         uri = self._all_branches[branch_name]
-        if not branch_name:
-            if branch_name not in self._all_branches:
-                raise ValueError(f"Branch '{branch_name}' does not exist.")
-            branch_id = self._all_branches[branch_name]
         if not uri:
-            uri = dbutil.format_db_uri(
-                PGSQL_USER, PGSQL_PASSWORD, PGSQL_HOST, PGSQL_PORT, branch_name
-            )
-            # Cache the URI - replace tuple since tuples are immutable
+            uri = PgsqlToolSuite.get_branch_uri(branch_name)
+            # Cache the URI
             self._all_branches[branch_name] = uri
 
         self.conn.close()
